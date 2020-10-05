@@ -1,0 +1,8 @@
+#!/bin/bash
+
+link=$1
+chapter_links=$(curl $link | html2text | sed '/Facebook Comments/q' | sed '1,/Chapter name/d' | grep -o 'https.*chapter\-[0-9]*')
+echo "$chapter_links"
+#for link in $chapter_links; do
+#    echo $link | manganelo_downloader 
+#done
