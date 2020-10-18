@@ -1,0 +1,32 @@
+#!/bin/bash
+
+
+# Site this script was made for: www.readchainsawman.com
+
+
+link=$1
+if [[ -z $1 ]]; then
+    read link
+fi
+
+link_lines=$(curl $link | html2text | sed '1,/Available Chapters/d' | sed '/Share on/q')
+
+chapter_name=$( echo "$link_lines" | grep -o 'Chapter [0-9]*\.\?[0-9]' | uniq | tr ' ' '_' | tr '.' '_' | head -n 1)
+
+links=$(echo "$link_lines" | grep -o 'https.*jpe\?g')
+
+if [[ -e "$chapter_name" ]]; then
+    echo "Directory for $chapter_name already exists"
+else
+    mkdir "$chapter_name"
+fi
+
+cd $chapter_name
+for link in $links; do
+    curl -O $link  
+done
+
+cd ..
+
+zip -r "$chapter_name.cbz" "$chapter_name"
+
