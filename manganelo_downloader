@@ -1,31 +1,59 @@
 #!/bin/bash
 
+link=
+dry_run=0
+chapter_name=
+while (( "$#" )); do
+  case "$1" in
+    -d|--dry-run)
+      dry_run=1
+      shift
+      ;;
+    -c|--chapter-name)
+      chapter_name=$2
+      shift 2
+  esac
+done
+
 link=$1
 if [[ -z $1 ]]; then
     read link
 fi
+echo "This is the link I am using: $link"
+echo "This is a directory I'm making $chapter_name"
+
+
 
 link_lines=$(curl $link | html2text | sed '1,/IMAGES SERVER/d' | sed '/gohome/q')
 
+if [[ -z $chapter_name ]]; then
 chapter_name=$( echo "$link_lines" | grep -o 'Chapter [0-9]*\.\?[0-9]' | uniq | tr ' ' '_' | tr '.' '_')
-#echo "$link_lines" | grep -o 'Chapter [0-9]*\.\?[0-9]'
+fi
 links=$(echo "$link_lines" |  grep -o 'https.*[0-9]*\.jpg')
 
-if [[ -e $chapter_name ]]; then
-    echo "Directory for $chapter_name already exists"
+#echo -e "Links Lines:\n$link_lines\n\nChapter Name:\n$chapter_name\n\nLinks:\n$links"
+
+
+if [[ $dry_run -eq 0 ]]; then
+
+	if [[ -e "$chapter_name" ]]; then
+	    echo "Directory for $chapter_name already exists"
+	else
+	    mkdir "$chapter_name"
+	fi
+	
+	cd "$chapter_name"
+	
+	for link in $links; do
+	    page_name=$(echo $link | grep -o '[0-9]*.jpg')
+	
+	    curl --output "$page_name" $link  -H 'Referer: https://chap.manganelo.com/'  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36' 
+	done
+	
+	cd ..
+	
+	zip -r "$chapter_name.cbz" "$chapter_name"
 else
-    mkdir $chapter_name
+	echo "Dry run on"
 fi
-
-cd $chapter_name
-
-for link in $links; do
-    page_name=$(echo $link | grep -o '[0-9]*.jpg')
-
-    curl --output "$page_name" $link  -H 'Referer: https://chap.manganelo.com/'  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36' 
-done
-
-cd ..
-
-zip -r "$chapter_name.cbz" "$chapter_name"
 
